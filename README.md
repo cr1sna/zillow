@@ -6,3 +6,9 @@
     }
   ]
 }
+
+Steps : 
+1. Input URL >> from apify_storage/key_value_stores../INPUT.JSON
+2. Goes to handle page > handleStart(context). in src/routes/handleStart -> getJson Data -> totalNumber of page -> loop each page via api. along with pass detail page link to handleDetail function. 
+3. extract remaining data from -> $('#hdpApolloPreloadedData').html() 
+
