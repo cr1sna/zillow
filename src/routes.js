@@ -51,7 +51,7 @@ exports.handleStart = async ({ $, crawler }) => {
 
     for (let i = 2; i <= totalPage; i++) {
         let requestUrl = `https://www.zillow.com/search/GetSearchPageState.htm?searchQueryState=%7B%22pagination%22%3A%7B%22currentPage%22%3A${i}%7D%2C%22usersSearchTerm%22%3A%22NY%22%2C%22mapBounds%22%3A%7B%22west%22%3A-81.59279440625%2C%22east%22%3A-69.94728659375%2C%22south%22%3A38.37704388296875%2C%22north%22%3A46.906054688559585%7D%2C%22mapZoom%22%3A6%2C%22regionSelection%22%3A%5B%7B%22regionId%22%3A43%2C%22regionType%22%3A2%7D%5D%2C%22isMapVisible%22%3Afalse%2C%22filterState%22%3A%7B%22isCondo%22%3A%7B%22value%22%3Afalse%7D%2C%22isApartment%22%3A%7B%22value%22%3Afalse%7D%2C%22isMultiFamily%22%3A%7B%22value%22%3Afalse%7D%2C%22keywords%22%3A%7B%22value%22%3A%22tlc%22%7D%2C%22isAllHomes%22%3A%7B%22value%22%3Atrue%7D%2C%22sortSelection%22%3A%7B%22value%22%3A%22days%22%7D%2C%22isLotLand%22%3A%7B%22value%22%3Afalse%7D%2C%22isTownhouse%22%3A%7B%22value%22%3Afalse%7D%2C%22isManufactured%22%3A%7B%22value%22%3Afalse%7D%2C%22isApartmentOrCondo%22%3A%7B%22value%22%3Afalse%7D%7D%2C%22isListVisible%22%3Atrue%7D&wants={%22cat1%22:[%22listResults%22],%22cat2%22:[%22total%22],%22regionResults%22:[%22total%22]}&requestId=${i}`;
-        console.console.log(`API for Page Number : ${i} >> (${requestUrl})`);
+        console.log(`API for Page Number : ${i} >> (${requestUrl})`);
         let res = await axios.get(requestUrl, config);
         let listing = res['data']['cat1']['searchResults']['listResults'];
         // console.console.log(res)
@@ -59,7 +59,7 @@ exports.handleStart = async ({ $, crawler }) => {
             for (let j = 0; j < listing.length; j++) {
                 let list = listing[j];
                 let url = list['detailUrl'];
-                console.console.log(`Requesting Detail Page: ${url}`);
+                console.log(`Requesting Detail Page: ${url}`);
                 await crawler.requestQueue.addRequest({
                     url,
                     userData: {
@@ -84,45 +84,72 @@ exports.handleDetail = async ({ request, $ }) => {
     const data = request.userData.data;
 
     let arr = {};
-    arr['Placeholder'] = '';
     arr['ZPID'] = jData['zpid'];
     arr['Full Address'] = data['address'];
     arr['Street'] = data['addressStreet'];
     arr['City'] = data['addressCity'];
     arr['State'] = data['addressState'];
     arr['Zip Code'] = data['addressZipcode'];
-    arr['Price'] = data['price'];
+    arr['Price'] = data['price']
+    if (arr['Price']) {
+        arr['Price'] = arr['Price'].replaceAll(',', '').replaceAll('$', '');
+    }
     arr['Beds'] = data['beds'];
     arr['Baths'] = data['baths'];
     arr['SqFt'] = data['area'];
-    arr['Status'] = data['hdpData']['homeInfo']['homeStatus'];
-    arr['Property Type'] = data['hdpData']['homeInfo']['homeType'];
-
+    arr['Status'] = data['hdpData']['homeInfo']['homeStatus'].replaceAll('_', ' ');
+    arr['Property Type'] = data['hdpData']['homeInfo']['homeType'].replaceAll('_', ' ');
     arr['Year Built'] = jData['yearBuilt'];
 
-    features = jData['resoFacts']['atAGlanceFacts'];
-    valid = ['Heating', 'Cooling', 'Parking', 'Lot', 'Price/sqft'];
+    let features = jData['resoFacts']['atAGlanceFacts'];
+    const valid = ['Heating', 'Cooling', 'Parking', 'Lot', 'Price/sqft'];
     for (let feature of features) {
         if (valid.includes(feature['factLabel'])) {
-            arr[feature['factLabel']] = feature['factValue'];
+            arr[feature['factLabel']] = feature['factValue']
+            if (feature['factValue']) {
+                arr[feature['factLabel']] = feature['factValue'].replaceAll(',', '').replaceAll('$', '');
+            }
         }
     }
+    try {
+        arr['Company'] = jData['attributionInfo']['brokerName'];
+        arr['Phone'] = jData['attributionInfo']['agentPhoneNumber'];
+        let fullName = jData['attributionInfo']['agentName'];
+        if (fullName) {
+            fullName = fullName.trim();
+        }
+        fullName = fullName.split('-')[0]
+        arr['Full Name'] = fullName;
+        if (arr['Full Name'].split(' ').length == 2) {
+            let firstName = fullName.split(' ')[0];
+            let lastName = fullName.split(' ')[1];
+            // if(firstName.trim() && lastName.trim() == ''){
+            //     lastName = fullName.replaceAll(firstName,'').trim()
+            // }
+            arr['First Name'] = firstName
+            arr['Last Name'] = lastName
+        }
+        if (arr['Full Name'].split(' ').length == 3) {
+            arr['First Name'] = arr['Full Name'].split(' ')[0];
+            arr['Last Name'] = arr['Full Name'].split(' ')[2];
+            if (arr['Last Name'].trim() == '') {
+                arr['Last Name'] = arr['Full Name'].split(' ')[1] 
+            }
 
-    arr['Company'] = json['attributeInfo']['brokerName'];
-    arr['Phone'] = jData['attributeInfo']['agentPhoneNumber'];
-    arr['Full Name'] = jData['attributionInfo']['agentName'];
-    arr['First Name'] = arr['Full Name'].split(' ')[0];
-    arr['Last Name'] = arr['Full Name'].split(' ')[1];
-    arr['Mobile'] = jData['attributeInfo']['agentPhoneNumber'];
+        }
+        arr['Mobile'] = jData['attributionInfo']['brokerPhoneNumber'];
+    } catch (err) {
+        console.log("not found ")
+    }
     arr['Description'] = jData['description'];
-
     arr['Time on Zillow'] = jData['timeOnZillow'];
     arr['Zillow Views'] = jData['pageViewCount'];
     arr['Zillow Saves'] = jData['favoriteCount'];
-    arr['MLS Number'] = jData['mlsId'];
-
-    arr['County'] = data['hdpData']['homeInfo']['country'];
+    arr['MLS Number'] = jData['mlsid'];
+    arr['County'] = jData['county'].replaceAll('County', '');
     arr['Property Image'] = data['imgSrc'];
 
+    console.log(arr);
+    // process.exit()
     Apify.pushData(arr);
 };
