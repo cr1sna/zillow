@@ -49,30 +49,27 @@ exports.handleStart = async ({ $, crawler }) => {
         },
     };
 
-    // for (let i = 2; i <= totalPage; i++) {
-
-    //     let requestUrl = `https://www.zillow.com/search/GetSearchPageState.htm?searchQueryState=%7B%22pagination%22%3A%7B%22currentPage%22%3A${i}%7D%2C%22usersSearchTerm%22%3A%22NY%22%2C%22mapBounds%22%3A%7B%22west%22%3A-81.59279440625%2C%22east%22%3A-69.94728659375%2C%22south%22%3A38.37704388296875%2C%22north%22%3A46.906054688559585%7D%2C%22mapZoom%22%3A6%2C%22regionSelection%22%3A%5B%7B%22regionId%22%3A43%2C%22regionType%22%3A2%7D%5D%2C%22isMapVisible%22%3Afalse%2C%22filterState%22%3A%7B%22isCondo%22%3A%7B%22value%22%3Afalse%7D%2C%22isApartment%22%3A%7B%22value%22%3Afalse%7D%2C%22isMultiFamily%22%3A%7B%22value%22%3Afalse%7D%2C%22keywords%22%3A%7B%22value%22%3A%22tlc%22%7D%2C%22isAllHomes%22%3A%7B%22value%22%3Atrue%7D%2C%22sortSelection%22%3A%7B%22value%22%3A%22days%22%7D%2C%22isLotLand%22%3A%7B%22value%22%3Afalse%7D%2C%22isTownhouse%22%3A%7B%22value%22%3Afalse%7D%2C%22isManufactured%22%3A%7B%22value%22%3Afalse%7D%2C%22isApartmentOrCondo%22%3A%7B%22value%22%3Afalse%7D%7D%2C%22isListVisible%22%3Atrue%7D&wants={%22cat1%22:[%22listResults%22],%22cat2%22:[%22total%22],%22regionResults%22:[%22total%22]}&requestId=${i}`;
-    //     console.console.log(`API for Page Number : ${i} >> (${requestUrl})`)
-    //     let res = await axios.get(requestUrl, config)
-    //     let listing = res['data']['cat1']['searchResults']['listResults']
-    //     // console.console.log(res)
-    //     if (listing.length != 0) {
-    //         for (let j = 0; j < listing.length; j++) {
-    //             let list = listing[j]
-    //             let url = list['detailUrl']
-    //             console.console.log(`Requesting Detail Page: ${url}`)
-    //             // await crawler.requestQueue.addRequest({
-    //             //     url,
-    //             //     userData: {
-    //             //         label: "DETAIL",
-    //             //         data: list
-    //             //     },
-    //             // });
-    //         };
-    //     }
-    //     // process.exit()
-    // }
-    // process.exit()
+    for (let i = 2; i <= totalPage; i++) {
+        let requestUrl = `https://www.zillow.com/search/GetSearchPageState.htm?searchQueryState=%7B%22pagination%22%3A%7B%22currentPage%22%3A${i}%7D%2C%22usersSearchTerm%22%3A%22NY%22%2C%22mapBounds%22%3A%7B%22west%22%3A-81.59279440625%2C%22east%22%3A-69.94728659375%2C%22south%22%3A38.37704388296875%2C%22north%22%3A46.906054688559585%7D%2C%22mapZoom%22%3A6%2C%22regionSelection%22%3A%5B%7B%22regionId%22%3A43%2C%22regionType%22%3A2%7D%5D%2C%22isMapVisible%22%3Afalse%2C%22filterState%22%3A%7B%22isCondo%22%3A%7B%22value%22%3Afalse%7D%2C%22isApartment%22%3A%7B%22value%22%3Afalse%7D%2C%22isMultiFamily%22%3A%7B%22value%22%3Afalse%7D%2C%22keywords%22%3A%7B%22value%22%3A%22tlc%22%7D%2C%22isAllHomes%22%3A%7B%22value%22%3Atrue%7D%2C%22sortSelection%22%3A%7B%22value%22%3A%22days%22%7D%2C%22isLotLand%22%3A%7B%22value%22%3Afalse%7D%2C%22isTownhouse%22%3A%7B%22value%22%3Afalse%7D%2C%22isManufactured%22%3A%7B%22value%22%3Afalse%7D%2C%22isApartmentOrCondo%22%3A%7B%22value%22%3Afalse%7D%7D%2C%22isListVisible%22%3Atrue%7D&wants={%22cat1%22:[%22listResults%22],%22cat2%22:[%22total%22],%22regionResults%22:[%22total%22]}&requestId=${i}`;
+        console.console.log(`API for Page Number : ${i} >> (${requestUrl})`);
+        let res = await axios.get(requestUrl, config);
+        let listing = res['data']['cat1']['searchResults']['listResults'];
+        // console.console.log(res)
+        if (listing.length != 0) {
+            for (let j = 0; j < listing.length; j++) {
+                let list = listing[j];
+                let url = list['detailUrl'];
+                console.console.log(`Requesting Detail Page: ${url}`);
+                await crawler.requestQueue.addRequest({
+                    url,
+                    userData: {
+                        label: 'DETAIL',
+                        data: list,
+                    },
+                });
+            }
+        }
+    }
 };
 
 exports.handleDetail = async ({ request, $ }) => {
@@ -126,4 +123,6 @@ exports.handleDetail = async ({ request, $ }) => {
 
     arr['County'] = data['hdpData']['homeInfo']['country'];
     arr['Property Image'] = data['imgSrc'];
+
+    Apify.pushData(arr);
 };
